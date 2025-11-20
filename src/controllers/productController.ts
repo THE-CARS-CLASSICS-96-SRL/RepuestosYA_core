@@ -30,13 +30,13 @@ export const create_product = async (req: Request, res: Response): Promise<void>
       productData.car_models = [car_model];
     }
     if (req.files) {
+      productData.images = [];
       const files = Array.isArray(req.files) ? req.files as Express.Multer.File[] : Object.values(req.files).flat() as Express.Multer.File[];
       files.forEach((file: Express.Multer.File) => {
         const path = `/uploads/${file.filename}`;
-        productData.images?.push({ url: path } as ProductCreateImageDTO);
+        productData.images.push({ url: path } as ProductCreateImageDTO);
       });
     }
-    console.log("Final product data:", productData);
     const result = await ProductService.create_product(productData);
     sendCreated(res, result, "Product created successfully");
   } catch (error) {
