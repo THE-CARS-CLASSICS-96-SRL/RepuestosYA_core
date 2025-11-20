@@ -101,8 +101,20 @@ export const add_product_image = async (req: Request, res: Response): Promise<vo
       await ProductService.add_product_image(product_id, image_url);
     }
     if (req.file) {
-      const uploadedImageUrl = `/uploads/${req.file.filename}`;
-      await ProductService.add_product_image(product_id, uploadedImageUrl);
+      const file = req.file;
+      const firebaseFileName = `${Date.now()}-${file.originalname}`;
+        const firebaseFile = bucket.file(firebaseFileName);
+        const fileBuffer = fs.readFileSync(file.path);
+
+        await firebaseFile.save(fileBuffer, {
+          contentType: file.mimetype,
+        });
+
+        const [publicUrl] = await firebaseFile.getSignedUrl({
+          action: 'read',
+          expires: '03-01-2500',
+        });
+      await ProductService.add_product_image(product_id, publicUrl);
     }
     sendNoContent(res, "Product image added successfully");
   } catch (error) {
