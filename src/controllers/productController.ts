@@ -1,12 +1,42 @@
 import { Request, Response } from "express";
 import * as ProductService from '../services/productService';
-import { CreateProductDTO, UpdateProductDTO } from "../dtos/productDTOs";
+import { CreateProductDTO, ProductCreateImageDTO, UpdateProductDTO } from "../dtos/productDTOs";
 import { handleError } from "../handlers/errorHandler";
 import { sendCreated, sendNoContent, sendSuccess } from "../handlers/successHandler";
 
 export const create_product = async (req: Request, res: Response): Promise<void> => {
   try {
     const productData: CreateProductDTO = req.body;
+    productData.enterprise_id = Number(productData.enterprise_id);
+    productData.stock = Number(productData.stock);
+    productData.price = Number(productData.price);
+    try {
+      productData.categories = productData.categories?.map((cat) => (Number(cat)));
+    } catch {
+      const category = Number(productData.categories);
+      productData.categories = [category];
+    }
+    try {
+      productData.brands = productData.brands?.map((brand) => (Number(brand)));
+    }
+    catch {
+      const brand = Number(productData.brands);
+      productData.brands = [brand];
+    }
+    try {
+      productData.car_models = productData.car_models?.map((cm) => (Number(cm)));
+    } catch {
+      const car_model = Number(productData.car_models);
+      productData.car_models = [car_model];
+    }
+    if (req.files) {
+      const files = Array.isArray(req.files) ? req.files as Express.Multer.File[] : Object.values(req.files).flat() as Express.Multer.File[];
+      files.forEach((file: Express.Multer.File) => {
+        const path = `/uploads/${file.filename}`;
+        productData.images?.push({ url: path } as ProductCreateImageDTO);
+      });
+    }
+    console.log("Final product data:", productData);
     const result = await ProductService.create_product(productData);
     sendCreated(res, result, "Product created successfully");
   } catch (error) {
@@ -54,7 +84,13 @@ export const add_product_image = async (req: Request, res: Response): Promise<vo
   try {
     const product_id = parseInt(req.params.id, 10);
     const { image_url } = req.body;
-    const result = await ProductService.add_product_image(product_id, image_url);
+    if (image_url) {
+      await ProductService.add_product_image(product_id, image_url);
+    }
+    if (req.file) {
+      const uploadedImageUrl = `/uploads/${req.file.filename}`;
+      await ProductService.add_product_image(product_id, uploadedImageUrl);
+    }
     sendNoContent(res, "Product image added successfully");
   } catch (error) {
     if (!(error instanceof Error)) {
