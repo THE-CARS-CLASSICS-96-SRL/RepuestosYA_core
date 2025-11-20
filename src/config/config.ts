@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { firestore } from 'firebase-admin';
 dotenv.config();
 
 const DEFAULT_SERVER_PORT = 3000;
@@ -25,6 +26,9 @@ const config = {
   },
   jwt: {
     tokenSecret: process.env.TOKEN_SECRET || 'yourSecretKey',
+  },
+  firestore: {
+    storageBucket: process.env.FIRESTORE_STORAGE_BUCKET || 'your-bucket-name',
   },
   allowedOrigins: [],
 };

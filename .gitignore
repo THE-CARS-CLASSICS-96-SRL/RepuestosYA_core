@@ -5,3 +5,5 @@ uploads/
 package-lock.json
 
 .env
+
+credentials.json

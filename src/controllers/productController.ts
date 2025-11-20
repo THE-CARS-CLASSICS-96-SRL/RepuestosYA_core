@@ -1,8 +1,10 @@
 import { Request, Response } from "express";
+import fs from "fs";
 import * as ProductService from '../services/productService';
 import { CreateProductDTO, ProductCreateImageDTO, UpdateProductDTO } from "../dtos/productDTOs";
 import { handleError } from "../handlers/errorHandler";
 import { sendCreated, sendNoContent, sendSuccess } from "../handlers/successHandler";
+import bucket from "../services/serverFirebase";
 
 export const create_product = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -32,9 +34,20 @@ export const create_product = async (req: Request, res: Response): Promise<void>
     if (req.files) {
       productData.images = [];
       const files = Array.isArray(req.files) ? req.files as Express.Multer.File[] : Object.values(req.files).flat() as Express.Multer.File[];
-      files.forEach((file: Express.Multer.File) => {
-        const path = `/uploads/${file.filename}`;
-        productData.images.push({ url: path } as ProductCreateImageDTO);
+      files.forEach(async (file: Express.Multer.File) => {
+        const firebaseFileName = `${Date.now()}-${file.originalname}`;
+        const firebaseFile = bucket.file(firebaseFileName);
+        const fileBuffer = fs.readFileSync(file.path);
+
+        await firebaseFile.save(fileBuffer, {
+          contentType: file.mimetype,
+        });
+
+        const [publicUrl] = await firebaseFile.getSignedUrl({
+          action: 'read',
+          expires: '03-01-2500',
+        });
+        productData.images.push({ url: publicUrl } as ProductCreateImageDTO);
       });
     }
     const result = await ProductService.create_product(productData);
